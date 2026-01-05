@@ -1,0 +1,76 @@
+# ============ 编译和构建产物 ============
+target/
+!target/classes/      # 通常也不提交，这里按标准忽略整个 target
+!target/test-classes/
+
+# ============ IDE 和编辑器 ============
+# IntelliJ
+.idea/
+*.iml
+*.iws
+out/
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# NetBeans
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+nbactions.xml
+nb-configuration.xml
+
+# ============ 操作系统 ============
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ============ 日志和临时文件 ============
+*.log
+*.tmp
+*.swp
+*.swo
+*~
+
+# ============ 环境变量和敏感文件 ============
+.env
+.env.local
+.env.*.local
+secrets/
+*.secret
+*.key
+*.pem
+
+# ============ Maven ============
+# 本地仓库不提交（但通常不在项目目录下）
+.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.properties
+
+# ============ 其他 ============
+# 调试/堆栈文件
+*.hprof
+*.heap
+*.log
+
+# 原生库文件
+*.dll
+*.so
+*.dylib
