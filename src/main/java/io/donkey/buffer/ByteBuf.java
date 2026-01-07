@@ -61,6 +61,8 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      */
     public abstract boolean isWritable();
 
+    public abstract ByteBuf setByte(int index, int value);
+
     public abstract ByteBuf clear();
 
     // 标记 readerIndex，可以重新回到 marked 位置
@@ -87,6 +89,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
     public abstract ByteBuf getBytes(int index, byte[] dst);
 
     public abstract ByteBuf getBytes(int index, ByteBuffer dst);
+
     // setBytes  5 个
     public abstract ByteBuf setBytes(int index, ByteBuf src);
 
