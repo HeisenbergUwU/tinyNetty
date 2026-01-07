@@ -1,4 +1,4 @@
-package io.donkey.util;
+package io.donkey.common;
 
 public interface ReferenceCounted {
 

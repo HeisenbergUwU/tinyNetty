@@ -1,6 +1,7 @@
 package io.donkey.util;
 
 
+import io.donkey.buffer.ByteBufAllocator;
 import io.donkey.util.internal.ArrayUtil;
 import io.donkey.util.internal.StringUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -15,14 +16,14 @@ public final class ByteBufUtil {
     private static final int MAX_CHAR_BUFFER_SIZE = 16 * 1024;
     private static final char[] HEXDUMP_TABLE = new char[256 * 4];
     private static final String NEWLINE = StringUtil.NEWLINE;
-    private static final String[] BYTE2HEX = new String[256];
+    private static final String[] BYTE2HEX = new String[256]; // 字节 -> Hex 编码
     private static final String[] HEXPADDING = new String[16];
     private static final String[] BYTEPADDING = new String[16];
     private static final char[] BYTE2CHAR = new char[256];
     private static final String[] HEXDUMP_ROWPREFIXES = new String[65536 >>> 4]; // HexDump 的表头，最多支持 64KB
     private static final int THREAD_LOCAL_BUFFER_SIZE = 64 * 1024;
     private static final String[] BYTE2HEX_PAD = new String[256];
-    static final ByteBufAllocator DEFAULT_ALLOCATOR = null;
+    public static final ByteBufAllocator DEFAULT_ALLOCATOR = null;
 
     static {
         // HEX 工具要用的字符
@@ -42,7 +43,7 @@ public final class ByteBufUtil {
             BYTE2HEX[i] = ' ' + StringUtil.byteToHexStringPadded(i);
         }
 
-        ArrayUtil.printAsMatrix(BYTE2HEX);
+
 
         // Generate the lookup table for hex dump paddings
         for (i = 0; i < HEXPADDING.length; i++) {
@@ -92,10 +93,6 @@ public final class ByteBufUtil {
     }
 
     public static void main(String[] args) {
-        System.out.println(1);
-        Class<StringUtil> byteBufClass = StringUtil.class;
 
-        String simpleName = byteBufClass.getSimpleName();
-        System.out.println(simpleName);
     }
 }
