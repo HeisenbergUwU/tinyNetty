@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.channels.GatheringByteChannel;
 import java.nio.channels.ScatteringByteChannel;
 import java.nio.charset.Charset;
@@ -16,6 +17,9 @@ public final class EmptyByteBuf extends ByteBuf {
 
     private static final ByteBuffer EMPTY_BYTE_BUFFER = ByteBuffer.allocate(0);
     private static final long EMPTY_BYTE_BUFFER_ADDRESS;
+    private final ByteBufAllocator alloc;
+    private final ByteOrder order;
+    private final String str;
 
     public EmptyByteBuf() {
     }
@@ -70,6 +74,11 @@ public final class EmptyByteBuf extends ByteBuf {
     }
 
     @Override
+    public boolean isWritable(int numBytes) {
+        return false;
+    }
+
+    @Override
     public int readableBytes() {
         return 0;
     }
@@ -97,6 +106,11 @@ public final class EmptyByteBuf extends ByteBuf {
     @Override
     public boolean isWritable() {
         return false;
+    }
+
+    @Override
+    public ByteBuf setByte(int index, int value) {
+        return null;
     }
 
     @Override
@@ -145,32 +159,7 @@ public final class EmptyByteBuf extends ByteBuf {
     }
 
     @Override
-    public ByteBuf setByte(int index, int value) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf getBytes(int index, ByteBuf dst) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf getBytes(int index, ByteBuf dst, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf getBytes(int index, ByteBuf dst, int dstIndex, int length) {
-        return null;
-    }
-
-    @Override
     public ByteBuf getBytes(int index, byte[] dst) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf getBytes(int index, byte[] dst, int dstIndex, int length) {
         return null;
     }
 
@@ -180,22 +169,7 @@ public final class EmptyByteBuf extends ByteBuf {
     }
 
     @Override
-    public ByteBuf getBytes(int index, OutputStream out, int length) throws IOException {
-        return null;
-    }
-
-    @Override
-    public int getBytes(int index, GatheringByteChannel out, int length) throws IOException {
-        return 0;
-    }
-
-    @Override
     public ByteBuf setBytes(int index, ByteBuf src) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf setBytes(int index, ByteBuf src, int length) {
         return null;
     }
 
@@ -205,28 +179,18 @@ public final class EmptyByteBuf extends ByteBuf {
     }
 
     @Override
-    public ByteBuf setBytes(int index, byte[] src) {
+    public ByteBuf setBytes(int index, byte[] src, int srcIndex, int length) {
         return null;
     }
 
     @Override
-    public ByteBuf setBytes(int index, byte[] src, int srcIndex, int length) {
+    public ByteBuf setBytes(int index, byte[] src) {
         return null;
     }
 
     @Override
     public ByteBuf setBytes(int index, ByteBuffer src) {
         return null;
-    }
-
-    @Override
-    public int setBytes(int index, InputStream in, int length) throws IOException {
-        return 0;
-    }
-
-    @Override
-    public int setBytes(int index, ScatteringByteChannel in, int length) throws IOException {
-        return 0;
     }
 
     @Override
@@ -240,48 +204,13 @@ public final class EmptyByteBuf extends ByteBuf {
     }
 
     @Override
-    public ByteBuf readSlice(int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf readBytes(ByteBuf dst) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf readBytes(ByteBuf dst, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf readBytes(ByteBuf dst, int dstIndex, int length) {
-        return null;
-    }
-
-    @Override
     public ByteBuf readBytes(byte[] dst) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf readBytes(byte[] dst, int dstIndex, int length) {
         return null;
     }
 
     @Override
     public ByteBuf readBytes(ByteBuffer dst) {
         return null;
-    }
-
-    @Override
-    public ByteBuf readBytes(OutputStream out, int length) throws IOException {
-        return null;
-    }
-
-    @Override
-    public int readBytes(GatheringByteChannel out, int length) throws IOException {
-        return 0;
     }
 
     @Override
@@ -295,38 +224,13 @@ public final class EmptyByteBuf extends ByteBuf {
     }
 
     @Override
-    public ByteBuf writeBytes(ByteBuf src, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf writeBytes(ByteBuf src, int srcIndex, int length) {
-        return null;
-    }
-
-    @Override
     public ByteBuf writeBytes(byte[] src) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf writeBytes(byte[] src, int srcIndex, int length) {
         return null;
     }
 
     @Override
     public ByteBuf writeBytes(ByteBuffer src) {
         return null;
-    }
-
-    @Override
-    public int writeBytes(InputStream in, int length) throws IOException {
-        return 0;
-    }
-
-    @Override
-    public int writeBytes(ScatteringByteChannel in, int length) throws IOException {
-        return 0;
     }
 
     @Override
@@ -360,17 +264,7 @@ public final class EmptyByteBuf extends ByteBuf {
     }
 
     @Override
-    public ByteBuf copy(int index, int length) {
-        return null;
-    }
-
-    @Override
     public ByteBuf slice() {
-        return null;
-    }
-
-    @Override
-    public ByteBuf slice(int index, int length) {
         return null;
     }
 
@@ -387,26 +281,6 @@ public final class EmptyByteBuf extends ByteBuf {
     @Override
     public ByteBuffer nioBuffer() {
         return null;
-    }
-
-    @Override
-    public ByteBuffer nioBuffer(int index, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuffer internalNioBuffer(int index, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuffer[] nioBuffers() {
-        return new ByteBuffer[0];
-    }
-
-    @Override
-    public ByteBuffer[] nioBuffers(int index, int length) {
-        return new ByteBuffer[0];
     }
 
     @Override
@@ -436,11 +310,6 @@ public final class EmptyByteBuf extends ByteBuf {
 
     @Override
     public String toString(Charset charset) {
-        return "";
-    }
-
-    @Override
-    public String toString(int index, int length, Charset charset) {
         return "";
     }
 
@@ -487,5 +356,15 @@ public final class EmptyByteBuf extends ByteBuf {
     @Override
     public ByteBuf retain() {
         return null;
+    }
+
+    @Override
+    public ByteBuf setBytes(int index, ByteBuf src, int length) {
+        return null;
+    }
+
+    @Override
+    public byte readByte() {
+        return 0;
     }
 }
