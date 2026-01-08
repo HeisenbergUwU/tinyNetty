@@ -168,4 +168,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
     public abstract ByteBuf retain();
 
     public abstract ByteBuf setBytes(int index, ByteBuf src, int length);
+
+    // readByte
+    public abstract byte readByte();
 }

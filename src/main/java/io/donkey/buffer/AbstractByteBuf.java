@@ -225,6 +225,13 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
+    /**
+     * 这里就凑活用了，不优化了。
+     *
+     * @param index
+     * @param length
+     * @return
+     */
     @Override
     public ByteBuf setZero(int index, int length) {
         if (length == 0) {
@@ -234,14 +241,37 @@ public abstract class AbstractByteBuf extends ByteBuf {
 
 //        int nLong = length >>> 3; // div 2^3
         int nLong = length; // 我得接口简化了 setLong 操作。用 setByte 凑活吧
-        int nBytes = length & 7; // div 7
+//        int nBytes = length & 7; // div 7
         for (int i = nLong; i > 0; i--) {
-            setByte(index, 0);
-            index += 8;
+            _setByte(index, (byte) 0);
+            index += 1;
         }
-        return null;
+        return this;
     }
 
+    // readByte
+    @Override
+    public byte readByte() {
+        checkReadableBytes0(1);
+        int i = readerIndex;
+        byte b = _getByte(i);
+        readerIndex = i + 1;
+        return b;
+    }
+
+    @Override
+    public ByteBuf readBytes(int length) {
+        checkReadableBytes(length);
+        if (length == 0) {
+            return Unpooled.EMPTY_BUFFER;
+        }
+
+        // Use an unpooled heap buffer because there's no way to mandate a user to free the returned buffer.
+        ByteBuf buf = Unpooled.buffer(length, maxCapacity);
+        buf.writeBytes(this, readerIndex, length);
+        readerIndex += length;
+        return buf;
+    }
     // --------
     // ABS 内部方法
     // --------
@@ -298,7 +328,9 @@ public abstract class AbstractByteBuf extends ByteBuf {
     private void checkReadableBytes0(int minimumReadableBytes) {
         ensureAccessible();
         if (readerIndex > writerIndex - minimumReadableBytes) {
-            throw new IndexOutOfBoundsException(String.format("readerIndex(%d) + length(%d) exceeds writerIndex(%d): %s", readerIndex, minimumReadableBytes, writerIndex, this));
+            throw new IndexOutOfBoundsException(String.format(
+                    "readerIndex(%d) + length(%d) exceeds writerIndex(%d): %s",
+                    readerIndex, minimumReadableBytes, writerIndex, this));
         }
     }
 
@@ -331,6 +363,13 @@ public abstract class AbstractByteBuf extends ByteBuf {
             this.markedReaderIndex = markedReaderIndex - decrement;
             markedWriterIndex -= decrement;
         }
+    }
+
+    protected final void checkReadableBytes(int minimumReadableBytes) {
+        if (minimumReadableBytes < 0) {
+            throw new IllegalArgumentException("minimumReadableBytes: " + minimumReadableBytes + " (expected: >= 0)");
+        }
+        checkReadableBytes0(minimumReadableBytes);
     }
 
     protected final void ensureAccessible() {
