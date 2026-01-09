@@ -14,7 +14,7 @@ import java.nio.charset.Charset;
  */
 public final class EmptyByteBuf extends ByteBuf {
 
-    private static final ByteBuffer EMPTY_BYTE_BUFFER = ByteBuffer.allocateDirect(0);
+    private static final ByteBuffer EMPTY_BYTE_BUFFER = ByteBuffer.allocate(0);
     private static final long EMPTY_BYTE_BUFFER_ADDRESS;
 
     static {
@@ -23,7 +23,6 @@ public final class EmptyByteBuf extends ByteBuf {
 
     private final ByteBufAllocator alloc;
     private final String str;
-    private EmptyByteBuf swapped;
 
     public EmptyByteBuf(ByteBufAllocator alloc) {
         this(alloc, ByteOrder.BIG_ENDIAN);

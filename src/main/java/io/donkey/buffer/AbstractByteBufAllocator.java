@@ -2,6 +2,8 @@ package io.donkey.buffer;
 
 import io.donkey.util.internal.StringUtil;
 
+import java.nio.ByteBuffer;
+
 public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
     private static final int DEFAULT_INITIAL_CAPACITY = 256;
     private static final int DEFAULT_MAX_COMPONENTS = 16;
@@ -9,11 +11,21 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
     private final boolean directByDefault = false;
     private final ByteBuf emptyBuf;
 
-    // Always Heap Memory
-    protected AbstractByteBufAllocator() {
-        emptyBuf = new EmptyByteBuf();
+    /**
+     * just return, no meaning
+     */
+    protected static ByteBuf toLeakAwareBuffer(ByteBuf buf) {
+        return buf;
     }
 
+    protected AbstractByteBufAllocator() {
+        this(false);
+    }
+
+    // Always Heap Memory
+    protected AbstractByteBufAllocator(boolean preferDirect) {
+        emptyBuf = new EmptyByteBuf(this);
+    }
 
     @Override
     public ByteBuf buffer() {
@@ -28,11 +40,6 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
     @Override
     public ByteBuf buffer(int initialCapacity, int maxCapacity) {
         return heapBuffer(initialCapacity, maxCapacity);
-    }
-
-    @Override
-    public boolean isDirectBufferPooled() {
-        return false;
     }
 
     @Override
@@ -54,12 +61,9 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         return newHeapBuffer(initialCapacity, maxCapacity);
     }
 
+    protected abstract ByteBuf newHeapBuffer(int initialCapacity, int maxCapacity);
 
-    @Override
-    public String toString() {
-        return StringUtil.simpleClassName(this) + "(directByDefault: " + directByDefault + ')';
-    }
-
+    // ---------- 私有方法
     private static void validate(int initialCapacity, int maxCapacity) {
         if (initialCapacity < 0) {
             throw new IllegalArgumentException("initialCapacity: " + initialCapacity + " (expectd: 0+)");
@@ -70,6 +74,4 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
                     initialCapacity, maxCapacity));
         }
     }
-
-    protected abstract ByteBuf newHeapBuffer(int initialCapacity, int maxCapacity);
 }
