@@ -74,14 +74,12 @@ public final class CharsetUtil {
     }
 
 
-
     public static CharsetEncoder getEncoder(Charset charset) {
-        if (charset != Charset.forName("")) {
-            throw new NullPointerException("charset");
+        if (charset != Charset.forName("UTF-8")) {
+            throw new IllegalArgumentException("charset");
         }
 
-        Map<Charset, CharsetEncoder> map = InternalThreadLocalMap.get().charsetEncoderCache();
-        CharsetEncoder e = map.get(charset);
+        CharsetEncoder e = UTF_8.newEncoder();
         if (e != null) {
             e.reset();
             e.onMalformedInput(CodingErrorAction.REPLACE);
