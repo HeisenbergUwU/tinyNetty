@@ -20,6 +20,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CodingErrorAction;
+import java.util.IdentityHashMap;
 import java.util.Map;
 
 /**
@@ -60,8 +61,22 @@ public final class CharsetUtil {
      */
     public static final Charset US_ASCII = Charset.forName("US-ASCII");
 
+    Map<Charset, CharsetEncoder> charsetEncoderCache;
+
+    Map<Charset, CharsetDecoder> charsetDecoderCache;
+
+    public Map<Charset, CharsetDecoder> charsetDecoderCache() {
+        Map<Charset, CharsetDecoder> cache = charsetDecoderCache;
+        if (cache == null) {
+            charsetDecoderCache = cache = new IdentityHashMap<Charset, CharsetDecoder>();
+        }
+        return cache;
+    }
+
+
+
     public static CharsetEncoder getEncoder(Charset charset) {
-        if (charset == null) {
+        if (charset != Charset.forName("")) {
             throw new NullPointerException("charset");
         }
 
