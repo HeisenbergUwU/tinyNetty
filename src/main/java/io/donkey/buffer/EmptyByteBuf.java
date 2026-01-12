@@ -135,12 +135,6 @@ public final class EmptyByteBuf extends ByteBuf {
     }
 
     @Override
-    public ByteBuf discardReadBytes() {
-        return this;
-    }
-
-
-    @Override
     public ByteBuf ensureWritable(int minWritableBytes) {
         if (minWritableBytes < 0) {
             throw new IllegalArgumentException("minWritableBytes: " + minWritableBytes + " (expected: >= 0)");
@@ -150,6 +144,12 @@ public final class EmptyByteBuf extends ByteBuf {
         }
         return this;
     }
+
+    @Override
+    public ByteBuffer[] nioBuffers() {
+        return new ByteBuffer[]{EMPTY_BYTE_BUFFER};
+    }
+
 
     @Override
     public int ensureWritable(int minWritableBytes, boolean force) {
@@ -170,48 +170,13 @@ public final class EmptyByteBuf extends ByteBuf {
     }
 
     @Override
-    public ByteBuf getBytes(int index, byte[] dst) {
-        return checkIndex(index, dst.length);
-    }
-
-    @Override
-    public ByteBuf getBytes(int index, ByteBuffer dst) {
-        return checkIndex(index, dst.remaining());
-    }
-
-    @Override
     public ByteBuf setByte(int index, int value) {
         throw new IndexOutOfBoundsException();
     }
 
     @Override
-    public ByteBuf setBytes(int index, ByteBuf src) {
-        throw new IndexOutOfBoundsException();
-    }
-
-    @Override
-    public ByteBuf setBytes(int index, ByteBuf src, int length) {
-        return checkIndex(index, length);
-    }
-
-    @Override
-    public ByteBuf setBytes(int index, ByteBuf src, int srcIndex, int length) {
-        return checkIndex(index, length);
-    }
-
-    @Override
-    public ByteBuf setBytes(int index, byte[] src) {
-        return checkIndex(index, src.length);
-    }
-
-    @Override
-    public ByteBuf setBytes(int index, byte[] src, int srcIndex, int length) {
-        return checkIndex(index, length);
-    }
-
-    @Override
-    public ByteBuf setBytes(int index, ByteBuffer src) {
-        return checkIndex(index, src.remaining());
+    public ByteBuf writeByte(int value) {
+        return null;
     }
 
     @Override
@@ -224,40 +189,6 @@ public final class EmptyByteBuf extends ByteBuf {
         throw new IndexOutOfBoundsException();
     }
 
-    @Override
-    public ByteBuf readBytes(int length) {
-        return checkLength(length);
-    }
-
-    @Override
-    public ByteBuf readBytes(byte[] dst) {
-        return checkLength(dst.length);
-    }
-
-    @Override
-    public ByteBuf readBytes(ByteBuffer dst) {
-        return checkLength(dst.remaining());
-    }
-
-    @Override
-    public ByteBuf skipBytes(int length) {
-        return checkLength(length);
-    }
-
-    @Override
-    public ByteBuf writeBytes(ByteBuf src) {
-        throw new IndexOutOfBoundsException();
-    }
-
-    @Override
-    public ByteBuf writeBytes(byte[] src) {
-        return checkLength(src.length);
-    }
-
-    @Override
-    public ByteBuf writeBytes(ByteBuffer src) {
-        return checkLength(src.remaining());
-    }
 
     @Override
     public ByteBuf writeZero(int length) {
@@ -271,37 +202,12 @@ public final class EmptyByteBuf extends ByteBuf {
         return -1;
     }
 
-    @Override
-    public int bytesBefore(byte value) {
-        return -1;
-    }
-
-    @Override
-    public int bytesBefore(int length, byte value) {
-        checkLength(length);
-        return -1;
-    }
-
-    @Override
-    public int bytesBefore(int index, int length, byte value) {
-        checkIndex(index, length);
-        return -1;
-    }
 
     @Override
     public ByteBuf copy() {
         return this;
     }
 
-    @Override
-    public ByteBuf slice() {
-        return this;
-    }
-
-    @Override
-    public ByteBuf duplicate() {
-        return this;
-    }
 
     @Override
     public int nioBufferCount() {
@@ -324,6 +230,17 @@ public final class EmptyByteBuf extends ByteBuf {
     }
 
     @Override
+    public ByteBuffer nioBuffer(int index, int length) {
+        checkIndex(index, length);
+        return nioBuffer();
+    }
+
+    @Override
+    public ByteBuffer[] nioBuffers(int index, int length) {
+        return new ByteBuffer[0];
+    }
+
+    @Override
     public int arrayOffset() {
         return 0;
     }
@@ -340,11 +257,6 @@ public final class EmptyByteBuf extends ByteBuf {
         } else {
             throw new UnsupportedOperationException();
         }
-    }
-
-    @Override
-    public String toString(Charset charset) {
-        return "";
     }
 
     @Override
@@ -385,6 +297,11 @@ public final class EmptyByteBuf extends ByteBuf {
     @Override
     public ByteBuf retain() {
         return this;
+    }
+
+    @Override
+    public ByteBuf copy(int index, int length) {
+        return null;
     }
 
     @Override

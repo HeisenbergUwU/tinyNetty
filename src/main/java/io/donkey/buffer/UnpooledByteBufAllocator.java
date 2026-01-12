@@ -11,7 +11,11 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator {
 
     @Override
     protected ByteBuf newHeapBuffer(int initialCapacity, int maxCapacity) {
-        return null;
+        return new UnpooledHeapByteBuf(this, initialCapacity, maxCapacity);
     }
 
+    @Override
+    public boolean isDirectBufferPooled() {
+        return false;
+    }
 }

@@ -2,13 +2,7 @@ package io.donkey.buffer;
 
 import io.donkey.common.ReferenceCounted;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.nio.channels.GatheringByteChannel;
-import java.nio.channels.ScatteringByteChannel;
-import java.nio.charset.Charset;
 
 /**
  * 大端序：从左到右写 → 1 2 3 4（高位在前）
@@ -61,7 +55,6 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      */
     public abstract boolean isWritable();
 
-    public abstract ByteBuf setByte(int index, int value);
 
     public abstract ByteBuf clear();
 
@@ -77,61 +70,19 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
     /**
      * 用于回收已读内存空间，用于释放缓缓冲区前面已经消费的空间。
      */
-    public abstract ByteBuf discardReadBytes();
-
     public abstract ByteBuf ensureWritable(int minWritableBytes);
+
+    public abstract ByteBuffer[] nioBuffers();
 
     public abstract int ensureWritable(int minWritableBytes, boolean force);
 
-    // --- 以下是一些读取数据的方法，很多可以通过重载实现
-    public abstract byte getByte(int index);
-
-    public abstract ByteBuf getBytes(int index, byte[] dst);
-
-    public abstract ByteBuf getBytes(int index, ByteBuffer dst);
-
-    // setBytes  5 个
-    public abstract ByteBuf setBytes(int index, ByteBuf src);
-
-    public abstract ByteBuf setBytes(int index, ByteBuf src, int srcIndex, int length);
-
-    public abstract ByteBuf setBytes(int index, byte[] src, int srcIndex, int length);
-
-    public abstract ByteBuf setBytes(int index, byte[] src);
-
-    public abstract ByteBuf setBytes(int index, ByteBuffer src);
-
     public abstract ByteBuf setZero(int index, int length);
-
-    public abstract ByteBuf readBytes(int length);
-
-    public abstract ByteBuf readBytes(byte[] dst);
-
-    public abstract ByteBuf readBytes(ByteBuffer dst);
-
-    public abstract ByteBuf skipBytes(int length);
-
-    public abstract ByteBuf writeBytes(ByteBuf src);
-
-    public abstract ByteBuf writeBytes(byte[] src);
-
-    public abstract ByteBuf writeBytes(ByteBuffer src);
 
     public abstract ByteBuf writeZero(int length);
 
     public abstract int indexOf(int fromIndex, int toIndex, byte value);
 
-    public abstract int bytesBefore(byte value);
-
-    public abstract int bytesBefore(int length, byte value);
-
-    public abstract int bytesBefore(int index, int length, byte value);
-
     public abstract ByteBuf copy();
-
-    public abstract ByteBuf slice();
-
-    public abstract ByteBuf duplicate();
 
     public abstract int nioBufferCount();
 
@@ -141,13 +92,15 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
 
     public abstract byte[] array();
 
+    public abstract ByteBuffer nioBuffer(int index, int length);
+
+    public abstract ByteBuffer[] nioBuffers(int index, int length);
+
     public abstract int arrayOffset();
 
     public abstract boolean hasMemoryAddress();
 
     public abstract long memoryAddress();
-
-    public abstract String toString(Charset charset);
 
     @Override
     public abstract int hashCode();
@@ -167,8 +120,15 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
     @Override
     public abstract ByteBuf retain();
 
-    public abstract ByteBuf setBytes(int index, ByteBuf src, int length);
+    public abstract ByteBuf copy(int index, int length);
 
-    // readByte
+    // --- 以下是一些读取数据的方法，很多可以通过重载实现
+    public abstract byte getByte(int index);
+
     public abstract byte readByte();
+
+    public abstract ByteBuf setByte(int index, int value);
+
+    public abstract ByteBuf writeByte(int value);
+
 }

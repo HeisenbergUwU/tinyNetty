@@ -1,7 +1,5 @@
 package io.donkey.buffer;
 
-import io.donkey.util.ByteBufUtil;
-
 /**
  * Implementations are responsible to allocate buffers. Implementations of this interface are expected to be
  * thread-safe.

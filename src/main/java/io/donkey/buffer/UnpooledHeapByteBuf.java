@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.channels.GatheringByteChannel;
 import java.nio.channels.ScatteringByteChannel;
 import java.nio.charset.Charset;
@@ -13,400 +14,100 @@ import java.nio.charset.Charset;
  */
 public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
 
-    @Override
-    public int capacity() {
-        return 0;
+
+    private final ByteBufAllocator alloc;
+    byte[] array;
+    private ByteBuffer tmpNioBuf;
+
+    protected UnpooledHeapByteBuf(ByteBufAllocator alloc, int initialCapacity, int maxCapacity) {
+        this(alloc, new byte[initialCapacity], 0, 0, maxCapacity);
     }
 
-    @Override
-    public ByteBuf capacity(int newCapacity) {
-        return null;
+    protected UnpooledHeapByteBuf(ByteBufAllocator alloc, byte[] initialArray, int maxCapacity) {
+        this(alloc, initialArray, 0, initialArray.length, maxCapacity);
     }
 
-    @Override
-    public int maxCapacity() {
-        return 0;
+    private UnpooledHeapByteBuf(
+            ByteBufAllocator alloc, byte[] initialArray, int readerIndex, int writerIndex, int maxCapacity) {
+
+        super(maxCapacity);
+        if (alloc == null) {
+            throw new NullPointerException("alloc");
+        }
+        if (initialArray == null) {
+            throw new NullPointerException("initialArray");
+        }
+        if (initialArray.length > maxCapacity) {
+            throw new IllegalArgumentException(String.format(
+                    "initialCapacity(%d) > maxCapacity(%d)", initialArray.length, maxCapacity));
+        }
+
+        this.alloc = alloc;
+        setArray(initialArray);
+        setIndex(readerIndex, writerIndex);
+    }
+
+    private void setArray(byte[] initialArray) {
+        array = initialArray;
+        tmpNioBuf = null;
     }
 
     @Override
     public ByteBufAllocator alloc() {
-        return null;
+        return alloc;
+    }
+
+
+    @Override
+    public int capacity() {
+        ensureAccessible();
+        return array.length;
+    }
+
+    @Override
+    public ByteBuf capacity(int newCapacity) {
+        ensureAccessible();
+        if (newCapacity < 0 || newCapacity > maxCapacity()) {
+            throw new IllegalArgumentException("newCapacity: " + newCapacity);
+        }
+        int oldCapacity = array.length;
+        // 扩容
+        if (newCapacity > oldCapacity) {
+            byte[] newArray = new byte[newCapacity];
+            System.arraycopy(array, 0, newArray, 0, array.length); // 创建一个新的数组
+            setArray(newArray);
+        } else if (newCapacity < oldCapacity) { // 缩容
+            byte[] newArray = new byte[newCapacity];
+            int readerIndex = readerIndex();
+            // 读索引在新的容量范围内
+            if (readerIndex < newCapacity) {
+                int writerIndex = writerIndex();
+                // 写索引在新容量范围外
+                if (writerIndex > newCapacity) {
+                    writerIndex(writerIndex = newCapacity);
+                }
+                System.arraycopy(array, readerIndex, newArray, readerIndex, writerIndex - readerIndex);
+            } else {
+                // 读索引超过了新容量
+                setIndex(newCapacity, newCapacity); // 重置读写索引
+            }
+            setArray(newArray);
+        }
+        return this;
     }
 
-    @Override
-    public int readerIndex() {
-        return 0;
-    }
-
-    @Override
-    public ByteBuf readerIndex(int readerIndex) {
-        return null;
-    }
-
-    @Override
-    public int writerIndex() {
-        return 0;
-    }
-
-    @Override
-    public ByteBuf writerIndex(int writerIndex) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf setIndex(int readerIndex, int writerIndex) {
-        return null;
-    }
-
-    @Override
-    public int readableBytes() {
-        return 0;
-    }
-
-    @Override
-    public int writableBytes() {
-        return 0;
-    }
-
-    @Override
-    public int maxWritableBytes() {
-        return 0;
-    }
-
-    @Override
-    public boolean isReadable() {
-        return false;
-    }
-
-    @Override
-    public boolean isReadable(int size) {
-        return false;
-    }
-
-    @Override
-    public boolean isWritable() {
-        return false;
-    }
-
-    @Override
-    public ByteBuf clear() {
-        return null;
-    }
-
-    @Override
-    public ByteBuf markReaderIndex() {
-        return null;
-    }
-
-    @Override
-    public ByteBuf resetReaderIndex() {
-        return null;
-    }
-
-    @Override
-    public ByteBuf markWriterIndex() {
-        return null;
-    }
-
-    @Override
-    public ByteBuf resetWriterIndex() {
-        return null;
-    }
-
-    @Override
-    public ByteBuf discardReadBytes() {
-        return null;
-    }
-
-    @Override
-    public ByteBuf ensureWritable(int minWritableBytes) {
-        return null;
-    }
-
-    @Override
-    public int ensureWritable(int minWritableBytes, boolean force) {
-        return 0;
-    }
-
-    @Override
-    public byte getByte(int index) {
-        return 0;
-    }
-
-    @Override
-    public ByteBuf setByte(int index, int value) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf getBytes(int index, ByteBuf dst) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf getBytes(int index, ByteBuf dst, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf getBytes(int index, ByteBuf dst, int dstIndex, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf getBytes(int index, byte[] dst) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf getBytes(int index, byte[] dst, int dstIndex, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf getBytes(int index, ByteBuffer dst) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf getBytes(int index, OutputStream out, int length) throws IOException {
-        return null;
-    }
-
-    @Override
-    public int getBytes(int index, GatheringByteChannel out, int length) throws IOException {
-        return 0;
-    }
-
-    @Override
-    public ByteBuf setBytes(int index, ByteBuf src) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf setBytes(int index, ByteBuf src, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf setBytes(int index, ByteBuf src, int srcIndex, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf setBytes(int index, byte[] src) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf setBytes(int index, byte[] src, int srcIndex, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf setBytes(int index, ByteBuffer src) {
-        return null;
-    }
-
-    @Override
-    public int setBytes(int index, InputStream in, int length) throws IOException {
-        return 0;
-    }
-
-    @Override
-    public int setBytes(int index, ScatteringByteChannel in, int length) throws IOException {
-        return 0;
-    }
-
-    @Override
-    public ByteBuf setZero(int index, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf readBytes(int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf readSlice(int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf readBytes(ByteBuf dst) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf readBytes(ByteBuf dst, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf readBytes(ByteBuf dst, int dstIndex, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf readBytes(byte[] dst) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf readBytes(byte[] dst, int dstIndex, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf readBytes(ByteBuffer dst) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf readBytes(OutputStream out, int length) throws IOException {
-        return null;
-    }
-
-    @Override
-    public int readBytes(GatheringByteChannel out, int length) throws IOException {
-        return 0;
-    }
-
-    @Override
-    public ByteBuf skipBytes(int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf writeBytes(ByteBuf src) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf writeBytes(ByteBuf src, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf writeBytes(ByteBuf src, int srcIndex, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf writeBytes(byte[] src) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf writeBytes(byte[] src, int srcIndex, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf writeBytes(ByteBuffer src) {
-        return null;
-    }
-
-    @Override
-    public int writeBytes(InputStream in, int length) throws IOException {
-        return 0;
-    }
-
-    @Override
-    public int writeBytes(ScatteringByteChannel in, int length) throws IOException {
-        return 0;
-    }
-
-    @Override
-    public ByteBuf writeZero(int length) {
-        return null;
-    }
-
-    @Override
-    public int indexOf(int fromIndex, int toIndex, byte value) {
-        return 0;
-    }
-
-    @Override
-    public int bytesBefore(byte value) {
-        return 0;
-    }
-
-    @Override
-    public int bytesBefore(int length, byte value) {
-        return 0;
-    }
-
-    @Override
-    public int bytesBefore(int index, int length, byte value) {
-        return 0;
-    }
-
-    @Override
-    public ByteBuf copy() {
-        return null;
-    }
-
-    @Override
-    public ByteBuf copy(int index, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf slice() {
-        return null;
-    }
-
-    @Override
-    public ByteBuf slice(int index, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuf duplicate() {
-        return null;
-    }
-
-    @Override
-    public int nioBufferCount() {
-        return 0;
-    }
-
-    @Override
-    public ByteBuffer nioBuffer() {
-        return null;
-    }
-
-    @Override
-    public ByteBuffer nioBuffer(int index, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuffer internalNioBuffer(int index, int length) {
-        return null;
-    }
-
-    @Override
-    public ByteBuffer[] nioBuffers() {
-        return new ByteBuffer[0];
-    }
-
-    @Override
-    public ByteBuffer[] nioBuffers(int index, int length) {
-        return new ByteBuffer[0];
-    }
 
     @Override
     public boolean hasArray() {
-        return false;
+        return true;
     }
 
     @Override
     public byte[] array() {
-        return new byte[0];
+        ensureAccessible();
+        return array;
     }
+
 
     @Override
     public int arrayOffset() {
@@ -420,61 +121,26 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
 
     @Override
     public long memoryAddress() {
-        return 0;
+        throw new UnsupportedOperationException();
     }
 
     @Override
-    public String toString(Charset charset) {
-        return "";
+    public ByteBuf getBytes(int index, ByteBuf dst, int dstIndex, int length) {
+        checkDstIndex(index, length, dstIndex, dst.capacity());
+        if (dst.hasMemoryAddress()) {
+            PlatformDependent.copyMemory(array, index, dst.memoryAddress() + dstIndex, length);
+        } else if (dst.hasArray()) {
+            getBytes(index, dst.array(), dst.arrayOffset() + dstIndex, length);
+        } else {
+            dst.setBytes(dstIndex, array, index, length);
+        }
+        return this;
     }
 
     @Override
-    public String toString(int index, int length, Charset charset) {
-        return "";
-    }
-
-    @Override
-    public int hashCode() {
-        return 0;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return false;
-    }
-
-    @Override
-    public int compareTo(ByteBuf buffer) {
-        return 0;
-    }
-
-    @Override
-    public String toString() {
-        return "";
-    }
-
-    @Override
-    public ByteBuf retain(int increment) {
-        return null;
-    }
-
-    @Override
-    public boolean release() {
-        return false;
-    }
-
-    @Override
-    public boolean release(int decrement) {
-        return false;
-    }
-
-    @Override
-    public int refCnt() {
-        return 0;
-    }
-
-    @Override
-    public ByteBuf retain() {
-        return null;
+    public ByteBuf getBytes(int index, byte[] dst, int dstIndex, int length) {
+        checkDstIndex(index, length, dstIndex, dst.length);
+        System.arraycopy(array, index, dst, dstIndex, length);
+        return this;
     }
 }

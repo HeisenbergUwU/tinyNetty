@@ -74,4 +74,10 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
                     initialCapacity, maxCapacity));
         }
     }
+
+
+    @Override
+    public String toString() {
+        return StringUtil.simpleClassName(this) + "(directByDefault: " + directByDefault + ')';
+    }
 }
