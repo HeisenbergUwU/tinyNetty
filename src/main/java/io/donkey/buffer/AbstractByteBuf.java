@@ -175,6 +175,27 @@ public abstract class AbstractByteBuf extends ByteBuf {
     }
 
     @Override
+    public int indexOf(int fromIndex, int toIndex, byte value) {
+        return ByteBufUtil.indexOf(this, fromIndex, toIndex, value);
+    }
+
+    @Override
+    public int hashCode() {
+        return ByteBufUtil.hashCode(this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o instanceof ByteBuf) {
+            return ByteBufUtil.equals(this, (ByteBuf) o);
+        }
+        return false;
+    }
+
+    @Override
     public ByteBuf setByte(int index, int value) {
         checkIndex(index);
         _setByte(index, value);

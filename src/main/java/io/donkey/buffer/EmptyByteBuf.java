@@ -230,6 +230,11 @@ public final class EmptyByteBuf extends ByteBuf {
     }
 
     @Override
+    public ByteBuffer internalNioBuffer(int index, int length) {
+        return null;
+    }
+
+    @Override
     public ByteBuffer nioBuffer(int index, int length) {
         checkIndex(index, length);
         return nioBuffer();

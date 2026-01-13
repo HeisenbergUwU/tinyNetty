@@ -110,9 +110,7 @@ public final class ByteBufUtil {
         int srcIdx = fromIndex;
         int dstIdx = 0;
         for (; srcIdx < endIndex; srcIdx++, dstIdx += 2) {
-            System.arraycopy(
-                    HEXDUMP_TABLE, buffer.getByte(srcIdx) & 0xff,
-                    buf, dstIdx, 2);
+            System.arraycopy(HEXDUMP_TABLE, buffer.getByte(srcIdx) & 0xff, buf, dstIdx, 2);
         }
 
         return new String(buf);
@@ -275,22 +273,6 @@ public final class ByteBufUtil {
         buffer.writerIndex = writerIndex;
     }
 
-
-    private static void decodeString(CharsetDecoder decoder, ByteBuffer src, CharBuffer dst) {
-        try {
-            CoderResult cr = decoder.decode(src, dst, true);
-            if (!cr.isUnderflow()) {
-                cr.throwException();
-            }
-            cr = decoder.flush(dst);
-            if (!cr.isUnderflow()) {
-                cr.throwException();
-            }
-        } catch (CharacterCodingException x) {
-            throw new IllegalStateException(x);
-        }
-    }
-
     public static ByteBuf encodeString(ByteBufAllocator alloc, CharBuffer src, Charset charset) {
         return encodeString0(alloc, false, src, charset);
     }
@@ -323,6 +305,47 @@ public final class ByteBufUtil {
         }
     }
 
+    static String decodeString(ByteBuf src, int readerIndex, int len, Charset charset) {
+        if (len == 0) {
+            return StringUtil.EMPTY_STRING;
+        }
+        final CharsetDecoder decoder = CharsetUtil.getDecoder();
+        final int maxLength = (int) ((double) len * decoder.maxCharsPerByte());
+        CharBuffer dst = CharBuffer.allocate(maxLength);
+        dst.clear();
+        if (src.nioBufferCount() == 1) {
+            decodeString(decoder, src.internalNioBuffer(readerIndex, len), dst);
+        } else {
+            ByteBuf byteBuf = src.alloc().heapBuffer(len);
+            try {
+                for (int i = 0; i < len; i++) {
+                    byteBuf.writeByte(src.getByte(i));
+                }
+                // Use internalNioBuffer(...) to reduce object creation.
+                decodeString(decoder, byteBuf.internalNioBuffer(readerIndex, len), dst);
+            } finally {
+                // Release the temporary buffer again.
+                byteBuf.release();
+            }
+        }
+        return dst.flip().toString();
+    }
+
+    private static void decodeString(CharsetDecoder decoder, ByteBuffer src, CharBuffer dst) {
+        try {
+            CoderResult cr = decoder.decode(src, dst, true);
+            if (!cr.isUnderflow()) {
+                cr.throwException();
+            }
+            cr = decoder.flush(dst);
+            if (!cr.isUnderflow()) {
+                cr.throwException();
+            }
+        } catch (CharacterCodingException x) {
+            throw new IllegalStateException(x);
+        }
+    }
+
     private static int firstIndexOf(ByteBuf buffer, int fromIndex, int toIndex, byte value) {
         fromIndex = Math.max(fromIndex, 0);
         if (fromIndex >= toIndex || buffer.capacity() == 0) {
@@ -330,8 +353,7 @@ public final class ByteBufUtil {
         }
         for (int i = fromIndex; i < toIndex; i++) {
             byte aByte = buffer.getByte(i);
-            if (aByte == value)
-                return i;
+            if (aByte == value) return i;
         }
         return -1;
     }
