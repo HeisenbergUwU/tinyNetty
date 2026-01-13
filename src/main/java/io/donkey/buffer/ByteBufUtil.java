@@ -296,20 +296,15 @@ public final class ByteBufUtil {
     }
 
     static ByteBuf encodeString0(ByteBufAllocator alloc, boolean enforceHeap, CharBuffer src, Charset charset) {
-        final CharsetEncoder encoder = CharsetUtil.getEncoder(charset);
+        final CharsetEncoder encoder = CharsetUtil.getEncoder();
         int length = (int) ((double) src.remaining() * encoder.maxBytesPerChar());
         boolean release = true;
-        final ByteBuf dst;
-        if (enforceHeap) {
-            dst = alloc.heapBuffer(length);
-        } else {
-            dst = alloc.buffer(length);
-        }
+        final ByteBuf dst = alloc.heapBuffer();
         try {
-            final ByteBuffer dstBuf = dst.internalNioBuffer(0, length);
+            final ByteBuffer dstBuf = dst.internalNioBuffer(0, length); // 共享 byte[] 区域
             final int pos = dstBuf.position();
-            CoderResult cr = encoder.encode(src, dstBuf, true);
-            if (!cr.isUnderflow()) {
+            CoderResult cr = encoder.encode(src, dstBuf, true); // 文字结束
+            if (!cr.isUnderflow()) { // 如果编码没有正常完成（即不是因为输入耗尽而结束），就抛出具体的异常
                 cr.throwException();
             }
             cr = encoder.flush(dstBuf);

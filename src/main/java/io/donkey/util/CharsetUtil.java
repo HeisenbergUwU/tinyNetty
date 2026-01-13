@@ -74,23 +74,11 @@ public final class CharsetUtil {
     }
 
 
-    public static CharsetEncoder getEncoder(Charset charset) {
-        if (charset != Charset.forName("UTF-8")) {
-            throw new IllegalArgumentException("charset");
-        }
+    public static CharsetEncoder getEncoder() {
 
         CharsetEncoder e = UTF_8.newEncoder();
-        if (e != null) {
-            e.reset();
-            e.onMalformedInput(CodingErrorAction.REPLACE);
-            e.onUnmappableCharacter(CodingErrorAction.REPLACE);
-            return e;
-        }
-
-        e = charset.newEncoder();
         e.onMalformedInput(CodingErrorAction.REPLACE);
         e.onUnmappableCharacter(CodingErrorAction.REPLACE);
-        map.put(charset, e);
         return e;
     }
 
@@ -98,24 +86,11 @@ public final class CharsetUtil {
      * Returns a cached thread-local {@link CharsetDecoder} for the specified
      * <tt>charset</tt>.
      */
-    public static CharsetDecoder getDecoder(Charset charset) {
-        if (charset == null) {
-            throw new NullPointerException("charset");
-        }
+    public static CharsetDecoder getDecoder() {
 
-        Map<Charset, CharsetDecoder> map = InternalThreadLocalMap.get().charsetDecoderCache();
-        CharsetDecoder d = map.get(charset);
-        if (d != null) {
-            d.reset();
-            d.onMalformedInput(CodingErrorAction.REPLACE);
-            d.onUnmappableCharacter(CodingErrorAction.REPLACE);
-            return d;
-        }
-
-        d = charset.newDecoder();
+        CharsetDecoder d = UTF_8.newDecoder();
         d.onMalformedInput(CodingErrorAction.REPLACE);
         d.onUnmappableCharacter(CodingErrorAction.REPLACE);
-        map.put(charset, d);
         return d;
     }
 

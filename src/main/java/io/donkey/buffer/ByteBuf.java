@@ -92,6 +92,8 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
 
     public abstract byte[] array();
 
+    public abstract ByteBuffer internalNioBuffer(int index, int length);
+
     public abstract ByteBuffer nioBuffer(int index, int length);
 
     public abstract ByteBuffer[] nioBuffers(int index, int length);
