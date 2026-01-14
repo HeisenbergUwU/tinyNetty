@@ -7,7 +7,6 @@ import java.nio.ByteBuffer;
  */
 public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
 
-
     private final ByteBufAllocator alloc;
     byte[] array;
     private ByteBuffer tmpNioBuf;
@@ -109,17 +108,28 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
 
     @Override
     public ByteBuffer internalNioBuffer(int index, int length) {
-        return null;
+        checkIndex(index, length);
+        return (ByteBuffer) internalNioBuffer().clear().position(index).limit(index + length);
     }
 
     @Override
     public ByteBuffer nioBuffer(int index, int length) {
-        return null;
+        ensureAccessible();
+        byte[] array = {1, 2, 3, 4, 5};
+//        ByteBuffer wrap = ByteBuffer.wrap(array, 0, array.length);
+//        ByteBuffer slice = wrap.slice();
+//
+//        System.out.println(wrap);
+//        System.out.println(slice);
+//        System.out.println(wrap == slice);
+//        System.out.println(wrap.equals(slice));
+        return ByteBuffer.wrap(array, index, length).slice();
     }
+
 
     @Override
     public ByteBuffer[] nioBuffers(int index, int length) {
-        return new ByteBuffer[0];
+        return new ByteBuffer[]{nioBuffer(index, length)};
     }
 
 
@@ -139,18 +149,16 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
     }
 
     @Override
-    public int compareTo(ByteBuf buffer) {
-        return 0;
-    }
-
-    @Override
     public String toString() {
         return "";
     }
 
     @Override
     public ByteBuf copy(int index, int length) {
-        return null;
+        checkIndex(index, length);
+        byte[] copiedArray = new byte[length];
+        System.arraycopy(array, index, copiedArray, 0, length);
+        return new UnpooledHeapByteBuf(alloc(), copiedArray, maxCapacity());
     }
 
 
@@ -161,11 +169,18 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
 
     @Override
     protected void _setByte(int index, int value) {
-
+        HeapByteBufUtil.setByte(array, index, value);
     }
-
     @Override
     protected byte _getByte(int index) {
         return 0;
+    }
+
+    private ByteBuffer internalNioBuffer() {
+        ByteBuffer tmpNioBuf = this.tmpNioBuf;
+        if (tmpNioBuf == null) {
+            this.tmpNioBuf = tmpNioBuf = ByteBuffer.wrap(array);
+        }
+        return tmpNioBuf;
     }
 }

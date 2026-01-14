@@ -417,5 +417,9 @@ public abstract class AbstractByteBuf extends ByteBuf {
         }
     }
 
+    @Override
+    public int compareTo(ByteBuf that) {
+        return ByteBufUtil.compare(this, that);
+    }
 
 }
