@@ -180,6 +180,16 @@ public final class EmptyByteBuf extends ByteBuf {
     }
 
     @Override
+    public String toString(Charset charset) {
+        return "";
+    }
+
+    @Override
+    public String toString(int index, int length, Charset charset) {
+        return "";
+    }
+
+    @Override
     public ByteBuf setZero(int index, int length) {
         return checkIndex(index, length);
     }

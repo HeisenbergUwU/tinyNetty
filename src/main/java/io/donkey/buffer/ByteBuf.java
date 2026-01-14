@@ -3,6 +3,7 @@ package io.donkey.buffer;
 import io.donkey.common.ReferenceCounted;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 
 /**
  * 大端序：从左到右写 → 1 2 3 4（高位在前）
@@ -133,4 +134,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
 
     public abstract ByteBuf writeByte(int value);
 
+    public abstract String toString(Charset charset);
+
+    public abstract String toString(int index, int length, Charset charset);
 }

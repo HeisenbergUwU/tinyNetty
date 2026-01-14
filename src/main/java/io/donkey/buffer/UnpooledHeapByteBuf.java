@@ -19,8 +19,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         this(alloc, initialArray, 0, initialArray.length, maxCapacity);
     }
 
-    private UnpooledHeapByteBuf(
-            ByteBufAllocator alloc, byte[] initialArray, int readerIndex, int writerIndex, int maxCapacity) {
+    private UnpooledHeapByteBuf(ByteBufAllocator alloc, byte[] initialArray, int readerIndex, int writerIndex, int maxCapacity) {
 
         super(maxCapacity);
         if (alloc == null) {
@@ -30,8 +29,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
             throw new NullPointerException("initialArray");
         }
         if (initialArray.length > maxCapacity) {
-            throw new IllegalArgumentException(String.format(
-                    "initialCapacity(%d) > maxCapacity(%d)", initialArray.length, maxCapacity));
+            throw new IllegalArgumentException(String.format("initialCapacity(%d) > maxCapacity(%d)", initialArray.length, maxCapacity));
         }
 
         this.alloc = alloc;
@@ -115,14 +113,6 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
     @Override
     public ByteBuffer nioBuffer(int index, int length) {
         ensureAccessible();
-        byte[] array = {1, 2, 3, 4, 5};
-//        ByteBuffer wrap = ByteBuffer.wrap(array, 0, array.length);
-//        ByteBuffer slice = wrap.slice();
-//
-//        System.out.println(wrap);
-//        System.out.println(slice);
-//        System.out.println(wrap == slice);
-//        System.out.println(wrap.equals(slice));
         return ByteBuffer.wrap(array, index, length).slice();
     }
 
@@ -148,10 +138,6 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         throw new UnsupportedOperationException();
     }
 
-    @Override
-    public String toString() {
-        return "";
-    }
 
     @Override
     public ByteBuf copy(int index, int length) {
@@ -171,9 +157,17 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
     protected void _setByte(int index, int value) {
         HeapByteBufUtil.setByte(array, index, value);
     }
+
+
+    @Override
+    public byte getByte(int index) {
+        ensureAccessible();
+        return _getByte(index);
+    }
+
     @Override
     protected byte _getByte(int index) {
-        return 0;
+        return HeapByteBufUtil.getByte(array, index);
     }
 
     private ByteBuffer internalNioBuffer() {

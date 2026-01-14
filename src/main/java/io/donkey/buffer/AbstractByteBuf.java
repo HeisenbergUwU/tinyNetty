@@ -1,9 +1,11 @@
 package io.donkey.buffer;
 
 import io.donkey.exceptions.IllegalReferenceCountException;
+import io.donkey.util.internal.StringUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 
 import static io.donkey.util.internal.MathUtil.isOutOfBounds;
 
@@ -422,4 +424,31 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return ByteBufUtil.compare(this, that);
     }
 
+    @Override
+    public String toString(Charset charset) {
+        return toString(readerIndex, readableBytes(), charset);
+    }
+
+    @Override
+    public String toString(int index, int length, Charset charset) {
+        return ByteBufUtil.decodeString(this, index, length, charset);
+    }
+
+    @Override
+    public String toString() {
+        if (refCnt() == 0) {
+            return StringUtil.simpleClassName(this) + "(freed)";
+        }
+
+        StringBuilder buf = new StringBuilder()
+                .append(StringUtil.simpleClassName(this))
+                .append("(ridx: ").append(readerIndex)
+                .append(", widx: ").append(writerIndex)
+                .append(", cap: ").append(capacity());
+        if (maxCapacity != Integer.MAX_VALUE) {
+            buf.append('/').append(maxCapacity);
+        }
+        buf.append(')');
+        return buf.toString();
+    }
 }
