@@ -11,5 +11,7 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
 
     Throwable cause();
 
-    Future<V> addListener()
+    Future<V> addListener(GenericFutureListener<? extends Future<? super V>> listener);
+
+    Future<V> removeListener(GenericFutureListener<? extends Future<? super V>> listener);
 }
