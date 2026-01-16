@@ -6,6 +6,10 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 
 public class run {
 
@@ -38,11 +42,41 @@ public class run {
                 memory[index + 3] & 0xff;
     }
 
-    public static void main(String[] args) throws CharacterCodingException {
-        int intFromByteArray = getIntFromByteArray(new byte[]{
-                1, 2, 3, 4
-        }, 0);
+    private static void dp() {
+        String[] strings = {"hello", "world"};
+    }
 
-        System.out.println(intFromByteArray);
+    class ChatBot {
+        private static HashMap history = new HashMap<Integer, String>();
+
+        ChatBot() {
+            // ...
+        }
+
+        protected String chat(Integer times, String echo) {
+            history.put(times, echo);
+            return echo;
+        }
+    }
+
+    static public int climbStairs(int n) {
+        if (n <= 1) {
+            return 1;
+        }
+
+        int[] dp = new int[n + 1];
+        dp[0] = 1;
+        dp[1] = 1;
+
+        for (int i = 2; i <= n; i++) {
+            dp[i] = dp[i - 1] + dp[i - 2];
+        }
+
+        return dp[n];
+    }
+
+    public static void main(String[] args) {
+
+        System.out.println(climbStairs(5));
     }
 }

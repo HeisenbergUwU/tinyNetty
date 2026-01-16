@@ -1,6 +1,8 @@
 package io.donkey.buffer;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 /**
  * Big endian Java heap buffer implementation.
@@ -176,5 +178,13 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
             this.tmpNioBuf = tmpNioBuf = ByteBuffer.wrap(array);
         }
         return tmpNioBuf;
+    }
+
+    @Override
+    public String toString() {
+        String string = super.toString();
+        String s = Arrays.toString(this.array());
+        String s1 = new String(this.array, StandardCharsets.UTF_8);
+        return string + " - " + s1 + "\n" + s;
     }
 }
