@@ -1,7 +1,4 @@
-package io.donkey.util.internal;
-
-import io.donkey.concurrent.EventExecutor;
-import io.donkey.concurrent.Future;
+package io.donkey.concurrent;
 
 public final class FailedFuture<V> extends CompleteFuture<V> {
 

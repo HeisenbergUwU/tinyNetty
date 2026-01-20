@@ -1,4 +1,4 @@
-package io.donkey.util;
+package io.donkey.concurrent;
 
 public abstract class CompleteFuture<V> extends AbstractFuture<V> {
 
