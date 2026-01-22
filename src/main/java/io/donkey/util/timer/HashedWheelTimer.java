@@ -28,6 +28,7 @@ public class HashedWheelTimer implements Timer {
     private volatile int workerState = WORKER_STATE_INIT;
 
     private final long tickDuration;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
     private final HashedWheelBucket[] wheel;
     private final int mask;
     private final CountDownLatch startTimeInitialized = new CountDownLatch(1);
@@ -95,6 +96,38 @@ public class HashedWheelTimer implements Timer {
     @Override
     public Set<Timeout> stop() {
         return Set.of();
+    }
+
+    private static HashedWheelBucket[] createWheel(int ticksPerWheel) {
+        if (ticksPerWheel <= 0) {
+            throw new IllegalArgumentException(
+                    "ticksPerWheel must be greater than 0: " + ticksPerWheel);
+        }
+        if (ticksPerWheel > 1073741824) {
+            throw new IllegalArgumentException(
+                    "ticksPerWheel may not be greater than 2^30: " + ticksPerWheel);
+        }
+
+    }
+
+    /**
+     * ⚙️ 2. 计算机底层：为什么 & 比 % 快？
+     * &（按位与） 是 CPU 最基础的逻辑运算指令，通常 1 个时钟周期就能完成。
+     * %（取模） 本质上是 除法运算的副产品。而整数除法在 CPU 中是非常慢的操作（可能需要几十甚至上百个时钟周期，尤其在没有硬件除法器的架构上）。
+     * 举个现实类比：
+     *
+     * & 就像“直接看最后几位数字”——一眼就知道。
+     * % 就像“拿计算器做除法，再看余数”——步骤多、耗时长。
+     * 在像 Netty 这种每秒处理成千上万定时任务的场景下，每次调度都要算槽位索引。如果用 %，性能会成为瓶颈；用 &，几乎无开销。
+     * @param ticksPerWheel
+     * @return
+     */
+    private static int normalizeTicksPerWheel(int ticksPerWheel) {
+        int normalizedTicksPerWheel = 1;
+        while (normalizedTicksPerWheel < ticksPerWheel) {
+            normalizedTicksPerWheel <<= 1; // 比ticksPerWheel 打一个幂的 参数
+        }
+        return normalizedTicksPerWheel;
     }
 
     /**
@@ -169,6 +202,38 @@ public class HashedWheelTimer implements Timer {
             timeout.next = null;
             timeout.bucket = null;
         }
+
+        public void clearTimeouts(Set<Timeout> set) {
+            for (; ; ) {
+                HashedWheelTimeout timeout = pollTimeout();
+                if (timeout == null) {
+                    return;
+                }
+                if (timeout.isExpired() || timeout.isCancelled()) {
+                    continue;
+                }
+                set.add(timeout);
+            }
+        }
+
+        private HashedWheelTimeout pollTimeout() {
+            HashedWheelTimeout head = this.head;
+            if (head == null) {
+                return null;
+            }
+            HashedWheelTimeout next = head.next;
+            if (next == null) {
+                tail = this.head = null;
+            } else {
+                this.head = next;
+                next.prev = null;
+            }
+
+            head.next = null;
+            head.prev = null;
+            head.bucket = null;
+            return head;
+        }
     }
 
     private final class Worker implements Runnable {
@@ -189,6 +254,7 @@ public class HashedWheelTimer implements Timer {
         }
     }
 
+    @Slf4j
     private static final class HashedWheelTimeout extends LinkedQueueNode<Timeout> implements Timeout {
         private static final int ST_INIT = 0;
         private static final int ST_CANCELLED = 1;
@@ -277,7 +343,7 @@ public class HashedWheelTimer implements Timer {
             try {
                 task.run(this);
             } catch (Throwable t) {
-
+                log.warn("An exception was thrown by {}.", TimerTask.class.getSimpleName(), t);
             }
         }
 
