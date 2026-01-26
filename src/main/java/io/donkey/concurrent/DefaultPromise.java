@@ -31,6 +31,8 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
     private Object listeners;
     private short waiters;
 
+    private ThreadLocal threadLocal = new ThreadLocal<>();
+
     public DefaultPromise(EventExecutor executor) {
         if (executor == null) {
             throw new NullPointerException("executor");
@@ -66,7 +68,8 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         return isDone0(result);
     }
 
-
+    // null：表示任务尚未完成（初始状态）。
+    // UNCANCELLABLE：一个特殊标记对象，表示该任务不可取消，但尚未完成。
     private static boolean isDone0(Object result) {
         return result != null && result != UNCANCELLABLE;
     }
@@ -102,12 +105,16 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
 
         synchronized (this) {
             if (!isDone()) {
+                // 如果null，那么直接复制成为一个 listener
                 if (listeners == null) {
                     listeners = listener;
                 } else {
+                    // 多个监听器（封装在 DefaultFutureListeners 容器中）。
+                    // 当有只有一个监听器的时候，不创建容器对象。 一点一滴节约内存
                     if (listeners instanceof DefaultFutureListeners) {
                         ((DefaultFutureListeners) listeners).add(listener);
                     } else {
+                        // 从单个listener 升级成为一个监听器容器
                         final GenericFutureListener<? extends Future<V>> firstListener = (GenericFutureListener<? extends Future<V>>) listeners;
                         listeners = new DefaultFutureListeners(firstListener, listener);
                     }
@@ -175,8 +182,8 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
 
     @Override
     public Promise<V> sync() throws InterruptedException {
-        await();
-        rethrowIfFailed();
+        await(); // 等待
+        rethrowIfFailed(); // 如果有错误抛出异常
         return this;
     }
 
@@ -193,7 +200,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
             return;
         }
 
-        PlatformDependent.throwException(cause);
+        throw (RuntimeException) cause; // 这是 unchecked Exception
     }
 
     @Override
@@ -342,11 +349,19 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
 
     /**
      * Do deadlock checks
+     * channel.eventLoop().execute(...) 把任务提交给 EventLoop
+     * EventLoop 线程（比如 nioEventLoopGroup-2-1）执行这个 lambda
+     * 在 lambda 中调用 future.sync()
+     * sync() → await() → checkDeadLock()
+     * checkDeadLock()：
+     * executor() → 返回 channel 的 EventLoop（就是当前这个 EventLoop）
+     * e.inEventLoop() → 当前线程 == EventLoop 的专属线程 → true
+     * 抛出异常！→ 没人能处理写完成事件 → Future 永远不会完成 → 永久阻塞
      */
     protected void checkDeadLock() {
         EventExecutor e = executor();
         if (e != null && e.inEventLoop()) {
-            throw new BlockingOperationException(toString());
+            throw new RuntimeException(toString());
         }
     }
 
@@ -429,6 +444,18 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         return true;
     }
 
+    /**
+     * The UNCANCELLABLE state is a special state that means the promise cannot be cancelled,
+     * but it's not yet completed. This state is set when setUncancellable() is called on a promise
+     * that is not yet done. The promise remains in this state until it is completed (either
+     * successfully, with failure, or cancellation - though cancellation is not possible once
+     * setUncancellable() has been called).
+     * <p>
+     * The isDone0 method returns false when result equals UNCANCELLABLE because the promise
+     * is still pending (not completed), even though it cannot be cancelled.
+     */
+    // Note: UNCANCELLABLE is defined as a static final Signal at the top of the class
+    // private static final Signal UNCANCELLABLE = Signal.valueOf(DefaultPromise.class.getName() + ".UNCANCELLABLE");
     private boolean setFailure0(Throwable cause) {
         if (cause == null) {
             throw new NullPointerException("cause");
@@ -512,25 +539,6 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         }
 
         EventExecutor executor = executor();
-        if (executor.inEventLoop()) {
-            final InternalThreadLocalMap threadLocals = InternalThreadLocalMap.get();
-            final int stackDepth = threadLocals.futureListenerStackDepth();
-            if (stackDepth < MAX_LISTENER_STACK_DEPTH) {
-                threadLocals.setFutureListenerStackDepth(stackDepth + 1);
-                try {
-                    if (listeners instanceof DefaultFutureListeners) {
-                        notifyListeners0(this, (DefaultFutureListeners) listeners);
-                    } else {
-                        final GenericFutureListener<? extends Future<V>> l = (GenericFutureListener<? extends Future<V>>) listeners;
-                        notifyListener0(this, l);
-                    }
-                } finally {
-                    this.listeners = null;
-                    threadLocals.setFutureListenerStackDepth(stackDepth);
-                }
-                return;
-            }
-        }
 
         if (listeners instanceof DefaultFutureListeners) {
             final DefaultFutureListeners dfl = (DefaultFutureListeners) listeners;
@@ -568,52 +576,10 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
      */
     private void notifyLateListener(final GenericFutureListener<?> l) {
         final EventExecutor executor = executor();
-        if (executor.inEventLoop()) {
-            if (listeners == null && lateListeners == null) {
-                final InternalThreadLocalMap threadLocals = InternalThreadLocalMap.get();
-                final int stackDepth = threadLocals.futureListenerStackDepth();
-                if (stackDepth < MAX_LISTENER_STACK_DEPTH) {
-                    threadLocals.setFutureListenerStackDepth(stackDepth + 1);
-                    try {
-                        notifyListener0(this, l);
-                    } finally {
-                        threadLocals.setFutureListenerStackDepth(stackDepth);
-                    }
-                    return;
-                }
-            } else {
-                LateListeners lateListeners = this.lateListeners;
-                if (lateListeners == null) {
-                    this.lateListeners = lateListeners = new LateListeners();
-                }
-                lateListeners.add(l);
-                execute(executor, lateListeners);
-                return;
-            }
-        }
-
-        // Add the late listener to lateListeners in the executor thread for thread safety.
-        // We could just make LateListeners extend ConcurrentLinkedQueue, but it's an overkill considering
-        // that most asynchronous applications won't execute this code path.
         execute(executor, new LateListenerNotifier(l));
     }
 
     protected static void notifyListener(final EventExecutor eventExecutor, final Future<?> future, final GenericFutureListener<?> l) {
-
-        if (eventExecutor.inEventLoop()) {
-            final InternalThreadLocalMap threadLocals = InternalThreadLocalMap.get();
-            final int stackDepth = threadLocals.futureListenerStackDepth();
-            if (stackDepth < MAX_LISTENER_STACK_DEPTH) {
-                threadLocals.setFutureListenerStackDepth(stackDepth + 1);
-                try {
-                    notifyListener0(future, l);
-                } finally {
-                    threadLocals.setFutureListenerStackDepth(stackDepth);
-                }
-                return;
-            }
-        }
-
         execute(eventExecutor, new Runnable() {
             @Override
             public void run() {
@@ -626,7 +592,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         try {
             executor.execute(task);
         } catch (Throwable t) {
-            rejectedExecutionLogger.error("Failed to submit a listener notification task. Event loop shut down?", t);
+            log.error("Failed to submit a listener notification task. Event loop shut down?", t);
         }
     }
 
@@ -635,8 +601,8 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         try {
             l.operationComplete(future);
         } catch (Throwable t) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("An exception was thrown by " + l.getClass().getName() + ".operationComplete()", t);
+            if (log.isWarnEnabled()) {
+                log.warn("An exception was thrown by " + l.getClass().getName() + ".operationComplete()", t);
             }
         }
     }
@@ -737,8 +703,8 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         try {
             l.operationProgressed(future, progress, total);
         } catch (Throwable t) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("An exception was thrown by " + l.getClass().getName() + ".operationProgressed()", t);
+            if (log.isWarnEnabled()) {
+                log.warn("An exception was thrown by " + l.getClass().getName() + ".operationProgressed()", t);
             }
         }
     }
