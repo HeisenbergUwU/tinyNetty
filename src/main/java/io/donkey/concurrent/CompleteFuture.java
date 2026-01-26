@@ -1,5 +1,7 @@
 package io.donkey.concurrent;
 
+import java.util.concurrent.TimeUnit;
+
 public abstract class CompleteFuture<V> extends AbstractFuture<V> {
 
     private final EventExecutor executor;

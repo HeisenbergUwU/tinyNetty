@@ -1,14 +1,13 @@
 package io.donkey.concurrent;
 
 import java.util.concurrent.Callable;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public final class ImmediateEventExecutor extends AbstractEventExecutor {
 
     public static final ImmediateEventExecutor INSTANCE = new ImmediateEventExecutor();
 
-    private final Future<?> termaintionFuture = new FailedFuture<Object>()
+    private final Future<?> termaintionFuture = new FailedFuture<Object>(null, null);
 
     @Override
     public boolean isShuttingDown() {

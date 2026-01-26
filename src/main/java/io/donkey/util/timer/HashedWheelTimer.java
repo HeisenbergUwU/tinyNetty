@@ -4,12 +4,12 @@ import io.donkey.util.internal.StringUtil;
 import io.donkey.util.struct.LinkedQueueNode;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
-import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 /**
  * 这是一个单次触发模型，
@@ -28,7 +28,6 @@ public class HashedWheelTimer implements Timer {
     private volatile int workerState = WORKER_STATE_INIT;
 
     private final long tickDuration;
-import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
     private final HashedWheelBucket[] wheel;
     private final int mask;
     private final CountDownLatch startTimeInitialized = new CountDownLatch(1);
@@ -90,13 +89,19 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
     @Override
     public Timeout newTimeout(TimerTask task, long delay, TimeUnit unit) {
-        return null;
+        if (task == null) {
+            throw new NullPointerException("task");
+        }
+        if (unit == null) {
+            throw new NullPointerException("unit");
+        }
+        start();
+        long deadline = System.nanoTime() + unit.toNanos(delay) - startTime;
+        HashedWheelTimeout timeout = new HashedWheelTimeout(this, task, deadline);
+        timeouts.add(timeout);
+        return timeout;
     }
 
-    @Override
-    public Set<Timeout> stop() {
-        return Set.of();
-    }
 
     private static HashedWheelBucket[] createWheel(int ticksPerWheel) {
         if (ticksPerWheel <= 0) {
@@ -107,7 +112,13 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
             throw new IllegalArgumentException(
                     "ticksPerWheel may not be greater than 2^30: " + ticksPerWheel);
         }
-
+        ticksPerWheel = normalizeTicksPerWheel(ticksPerWheel); // 得到幂
+        // 这行代码只是创建了一个长度为 ticksPerWheel 的数组，数组的每个元素类型是 HashedWheelBucket，但数组中的每一个元素初始值都是 null。
+        HashedWheelBucket[] wheel = new HashedWheelBucket[ticksPerWheel];
+        for (int i = 0; i < wheel.length; i++) {
+            wheel[i] = new HashedWheelBucket();
+        }
+        return wheel;
     }
 
     /**
@@ -115,19 +126,76 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
      * &（按位与） 是 CPU 最基础的逻辑运算指令，通常 1 个时钟周期就能完成。
      * %（取模） 本质上是 除法运算的副产品。而整数除法在 CPU 中是非常慢的操作（可能需要几十甚至上百个时钟周期，尤其在没有硬件除法器的架构上）。
      * 举个现实类比：
-     *
+     * <p>
      * & 就像“直接看最后几位数字”——一眼就知道。
      * % 就像“拿计算器做除法，再看余数”——步骤多、耗时长。
      * 在像 Netty 这种每秒处理成千上万定时任务的场景下，每次调度都要算槽位索引。如果用 %，性能会成为瓶颈；用 &，几乎无开销。
+     *
      * @param ticksPerWheel
      * @return
      */
     private static int normalizeTicksPerWheel(int ticksPerWheel) {
         int normalizedTicksPerWheel = 1;
         while (normalizedTicksPerWheel < ticksPerWheel) {
-            normalizedTicksPerWheel <<= 1; // 比ticksPerWheel 打一个幂的 参数
+            normalizedTicksPerWheel <<= 1; // 比ticksPerWheel 高一个幂的 参数
         }
         return normalizedTicksPerWheel;
+    }
+
+
+    public void start() {
+        switch (WORKER_STATE_UPDATER.get(this)) {
+            case WORKER_STATE_INIT:
+                if (WORKER_STATE_UPDATER.compareAndSet(this, WORKER_STATE_INIT, WORKER_STATE_STARTED)) {
+                    workerThread.start();
+                }
+                break;
+            case WORKER_STATE_STARTED:
+                break;
+            case WORKER_STATE_SHUTDOWN:
+                throw new IllegalStateException("cannot be started once stopped");
+            default:
+                throw new Error("Invalid WorkerState");
+        }
+
+        while (startTime == 0) {
+            try {
+                startTimeInitialized.await();
+            } catch (InterruptedException ignore) {
+                // Ignore - it will be ready very soon.
+            }
+        }
+    }
+
+    @Override
+    public Set<Timeout> stop() {
+        if (Thread.currentThread() == workerThread) {
+            throw new IllegalStateException(
+                    HashedWheelTimer.class.getSimpleName() +
+                            ".stop() cannot be called from " +
+                            TimerTask.class.getSimpleName());
+        }
+
+        if (!WORKER_STATE_UPDATER.compareAndSet(this, WORKER_STATE_STARTED, WORKER_STATE_SHUTDOWN)) {
+            WORKER_STATE_UPDATER.set(this, WORKER_STATE_SHUTDOWN);
+
+            return Collections.emptySet();
+        }
+
+        boolean interrupted = false;
+        while (workerThread.isAlive()) {
+            workerThread.interrupt();
+            try {
+                workerThread.join(100);
+            } catch (InterruptedException ignored) {
+                interrupted = true;
+            }
+        }
+
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
+        return worker.unprocessedTimeouts();
     }
 
     /**
@@ -244,13 +312,114 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
         @Override
         public void run() {
             startTime = System.nanoTime();
+            if (startTime == 0) {
+                // We use 0 as an indicator for the uninitialized value here, so make sure it's not 0 when initialized.
+                startTime = 1;
+            }
+
+            startTimeInitialized.countDown(); // 0 之后就可以放行了
+
+            do {
+                final long deadline = waitForNextTick();
+                if (deadline > 0) {
+                    int idx = (int) (tick & mask);
+                    processCancelledTasks();
+                    HashedWheelBucket bucket =
+                            wheel[idx];
+                    transferTimeoutsToBuckets(); // 一次转移 10w 个任务
+                    bucket.expireTimeouts(deadline);
+                    tick++;
+                }
+            } while (WORKER_STATE_UPDATER.get(HashedWheelTimer.this) == WORKER_STATE_STARTED);
+            // Fill the unprocessedTimeouts so we can return them from stop() method.
+            for (HashedWheelBucket bucket : wheel) {
+                bucket.clearTimeouts(unprocessedTimeouts);
+            }
+            for (; ; ) {
+                HashedWheelTimeout timeout = timeouts.poll();
+                if (timeout == null) {
+                    break;
+                }
+                if (!timeout.isCancelled()) {
+                    unprocessedTimeouts.add(timeout);
+                }
+            }
+            processCancelledTasks();
         }
 
         private void transferTimeoutsToBuckets() {
+            for (int i = 0; i < 100000; i++) {
+                HashedWheelTimeout timeout = timeouts.poll();
+                if (timeout == null) {
+                    // all processed
+                    break;
+                }
+                if (timeout.state() == HashedWheelTimeout.ST_CANCELLED) {
+                    continue;
+                }
+                long calculated = timeout.deadline / tickDuration;
+                timeout.remainingRounds = (calculated - tick) / wheel.length;
 
+                final long ticks = Math.max(calculated, tick);
+
+                int stopIndex = (int) (ticks & mask);
+
+                HashedWheelBucket bucket = wheel[stopIndex];
+                bucket.addTimeout(timeout);
+            }
         }
 
         private void processCancelledTasks() {
+            for (; ; ) {
+                Runnable task = cancelledTimeouts.poll();
+                if (task == null) {
+                    break;
+                }
+                try {
+                    task.run();
+                } catch (Throwable t) {
+                    log.warn("An exception was thrown while process a cancellation task", t);
+                }
+            }
+        }
+
+        private long waitForNextTick() {
+            long deadline = tickDuration * (tick + 1);
+
+            for (; ; ) {
+                final long currentTime = System.nanoTime() - startTime;
+                long sleepTimeMs = (deadline - currentTime + 999999) / 1000000;
+
+                if (sleepTimeMs <= 0) {
+                    if (currentTime == Long.MIN_VALUE) {
+                        return -Long.MAX_VALUE;
+                    } else {
+                        return currentTime;
+                    }
+                }
+                /**
+                 * 线程状态
+                 * 调用 interrupt() 后
+                 * 阻塞中（sleep/wait/join）
+                 * ➤ 抛 InterruptedException
+                 * ➤ 中断状态 = false（自动清除）
+                 * 运行中（非阻塞）
+                 * ➤ 不抛异常
+                 * ➤ 中断状态 = true
+                 */
+                try {
+                    Thread.sleep(sleepTimeMs);
+                } catch (InterruptedException ignored) {
+                    if (WORKER_STATE_UPDATER.get(HashedWheelTimer.this) == WORKER_STATE_SHUTDOWN)
+                        return Long.MIN_VALUE;
+                }
+            }
+        }
+
+        public Set<Timeout> unprocessedTimeouts() {
+            // It returns an unmodifiable view of the specified set. This means that while you can read from the set
+            // (iterate over it, check if it contains elements, etc.), you cannot modify it (add, remove, or clear elements).
+            return Collections.unmodifiableSet(unprocessedTimeouts);
         }
     }
 
