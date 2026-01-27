@@ -10,25 +10,39 @@ import java.util.concurrent.atomic.AtomicLong;
 public class ByteBuf {
     public int capacity = 64;
     private byte[] array = new byte[capacity];
-    public AtomicLong refCnt = new AtomicLong();
+    private final AtomicLong refCnt = new AtomicLong(1);
+    private static final int MAX_EXPANSION = 4096;
 
     public int readIndex;
     public int writeIndex;
 
     public byte readByte() {
         if (readIndex < writeIndex) {
-            readIndex += 1;
-            return this.array[readIndex - 1];
+            return this.array[readIndex++];
         } else {
             throw new RuntimeException("ReadByte OverFlow..");
         }
     }
 
-    public boolean writeByte(byte b) {
-        if ()
+    public void writeByte(byte b) {
+        if (writeIndex >= capacity) {
+            expansion();
+        }
+        array[writeIndex++] = b;
     }
 
-    private
+    private void expansion() {
+        int size = Math.min(MAX_EXPANSION, capacity << 1);
+        byte[] newArray;
+        if (capacity << 1 >= MAX_EXPANSION) {
+            newArray = new byte[size + array.length];
+        } else {
+            newArray = new byte[size];
+        }
+        System.arraycopy(array, 0, newArray, 0, array.length);
+        array = newArray;
+        capacity = array.length;
+    }
 
     public ByteBuffer wrap() {
         return ByteBuffer.wrap(array);
