@@ -1,4 +1,10 @@
-package io.donkey.concurrent;
+package io.donkey.executor;
+
+import io.donkey.concurrent.Promise.*;
+import io.donkey.concurrent.future.FailedFuture;
+import io.donkey.concurrent.future.Future;
+import io.donkey.concurrent.future.ScheduledFuture;
+import io.donkey.concurrent.future.SucceededFuture;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -8,6 +14,11 @@ import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.Callable;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
+
+/**
+ * AbstractExecutorService 是 JDK 并发包（java.util.concurrent）中的核心抽象类，它的核心作用是：为 ExecutorService 接口提供高层方法的默认实现，
+ * 子类只需实现底层的 execute(Runnable) 即可获得完整功能。这是典型的 "模板方法模式"（Template Method Pattern） 设计。
+ */
 public abstract class AbstractEventExecutor extends AbstractExecutorService implements EventExecutor {
 
     @Override
@@ -15,6 +26,7 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
         return this;
     }
 
+    // 是否在 EventLoop 中
     @Override
     public boolean inEventLoop() {
         return inEventLoop(Thread.currentThread());
@@ -30,16 +42,10 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
         return shutdownGracefully(2, 15, TimeUnit.SECONDS);
     }
 
-    /**
-     * @deprecated {@link #shutdownGracefully(long, long, TimeUnit)} or {@link #shutdownGracefully()} instead.
-     */
     @Override
     @Deprecated
     public abstract void shutdown();
 
-    /**
-     * @deprecated {@link #shutdownGracefully(long, long, TimeUnit)} or {@link #shutdownGracefully()} instead.
-     */
     @Override
     @Deprecated
     public List<Runnable> shutdownNow() {
@@ -52,7 +58,6 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
         return new DefaultPromise<V>(this);
     }
 
-    @Override
     public <V> ProgressivePromise<V> newProgressivePromise() {
         return new DefaultProgressivePromise<V>(this);
     }
@@ -113,8 +118,11 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * 这玩意儿只能迭代一个。。。
+     */
     private final class EventExecutorIterator implements Iterator<EventExecutor> {
-        private boolean nextCalled;
+        private boolean nextCalled; // default value = false
 
         @Override
         public boolean hasNext() {

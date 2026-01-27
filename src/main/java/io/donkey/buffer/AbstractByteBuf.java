@@ -2,8 +2,6 @@ package io.donkey.buffer;
 
 import io.donkey.exceptions.IllegalReferenceCountException;
 import io.donkey.util.internal.StringUtil;
-import lombok.extern.slf4j.Slf4j;
-
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
@@ -12,7 +10,6 @@ import static io.donkey.util.internal.MathUtil.isOutOfBounds;
 /**
  * Allocator 可以理解为一个工厂类
  */
-@Slf4j
 public abstract class AbstractByteBuf extends ByteBuf {
     private static final boolean checkAccessible = true;
 
@@ -37,12 +34,10 @@ public abstract class AbstractByteBuf extends ByteBuf {
         this.maxCapacity = maxCapacity;
     }
 
-    @Override
     public int maxCapacity() {
         return maxCapacity;
     }
 
-    @Override
     public int readerIndex() {
         return readerIndex;
     }

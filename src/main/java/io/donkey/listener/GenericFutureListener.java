@@ -1,4 +1,6 @@
-package io.donkey.concurrent;
+package io.donkey.listener;
+
+import io.donkey.concurrent.future.Future;
 
 import java.util.EventListener;
 

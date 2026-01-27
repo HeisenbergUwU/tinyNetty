@@ -1,4 +1,7 @@
-package io.donkey.concurrent;
+package io.donkey.concurrent.Promise;
+
+import io.donkey.concurrent.future.Future;
+import io.donkey.listener.GenericFutureListener;
 
 /**
  * Special {@link Future} which is writable.

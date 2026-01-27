@@ -1,4 +1,6 @@
-package io.donkey.concurrent;
+package io.donkey.concurrent.future;
+
+import io.donkey.listener.GenericFutureListener;
 
 import java.util.concurrent.TimeUnit;
 

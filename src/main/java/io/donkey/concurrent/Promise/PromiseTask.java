@@ -1,55 +1,53 @@
-package io.donkey.concurrent;
+package io.donkey.concurrent.Promise;
+
+import io.donkey.executor.EventExecutor;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.RunnableFuture;
 
-class PromiseTask<V> extends DefaultPromise<V> implements RunnableFuture<V> {
+// 如果使用 Callable 的话，必须使用FutureTask 包装 Callable。
+//                try {
+//                    result = c.call();
+//                    ran = true;
+//                } catch (Throwable ex) {
+//                    result = null;
+//                    ran = false;
+//                    setException(ex);
+//                }
+//                if (ran)
+//                    set(result);
+//            }
+// DefaultPromise 本质上就是一个异步操作的结果容器 + 状态机 + 通知中心
+public class PromiseTask<V> extends DefaultPromise<V> implements RunnableFuture<V> {
 
-    static <T> Callable<T> toCallable(Runnable runnable, T result) {
+    protected static <T> Callable<T> toCallable(Runnable runnable, T result) {
         return new RunnableAdapter<T>(runnable, result);
-    }
-
-    private static final class RunnableAdapter<T> implements Callable<T> {
-        final Runnable task;
-        final T result;
-
-        RunnableAdapter(Runnable task, T result) {
-            this.task = task;
-            this.result = result;
-        }
-
-        @Override
-        public T call() {
-            task.run();
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "Callable(task: " + task + ", result: " + result + ')';
-        }
     }
 
     protected final Callable<V> task;
 
-    PromiseTask(EventExecutor executor, Runnable runnable, V result) {
+    public PromiseTask(EventExecutor executor, Runnable runnable, V result) {
         this(executor, toCallable(runnable, result));
     }
 
-    PromiseTask(EventExecutor executor, Callable<V> callable) {
+    public PromiseTask(EventExecutor executor, Callable<V> callable) {
         super(executor);
         task = callable;
     }
 
-    @Override
-    public final int hashCode() {
-        return System.identityHashCode(this);
-    }
+    private record RunnableAdapter<T>(Runnable task, T result) implements Callable<T> {
 
-    @Override
-    public final boolean equals(Object obj) {
-        return this == obj;
-    }
+        @Override
+            public T call() throws Exception {
+                task.run();
+                return result;
+            }
+
+            @Override
+            public String toString() {
+                return "Callable(task: " + task + ", result: " + result + ')';
+            }
+        }
 
     @Override
     public void run() {
@@ -62,6 +60,18 @@ class PromiseTask<V> extends DefaultPromise<V> implements RunnableFuture<V> {
             setFailureInternal(e);
         }
     }
+
+    @Override
+    public final boolean equals(Object obj) {
+        return this == obj;
+    }
+
+    @Override
+    public final int hashCode() {
+        // 基于地址计算的 hashcode，是懒计算的。
+        return System.identityHashCode(this);
+    }
+
 
     @Override
     public final Promise<V> setFailure(Throwable cause) {
@@ -119,4 +129,5 @@ class PromiseTask<V> extends DefaultPromise<V> implements RunnableFuture<V> {
                 .append(task)
                 .append(')');
     }
+
 }

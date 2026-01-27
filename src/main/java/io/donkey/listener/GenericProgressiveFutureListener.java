@@ -1,4 +1,6 @@
-package io.donkey.concurrent;
+package io.donkey.listener;
+
+import io.donkey.concurrent.future.ProgressiveFuture;
 
 public interface GenericProgressiveFutureListener<F extends ProgressiveFuture<?>> extends GenericFutureListener<F> {
     /**

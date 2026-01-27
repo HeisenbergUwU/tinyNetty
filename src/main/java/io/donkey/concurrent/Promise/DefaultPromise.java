@@ -1,8 +1,15 @@
-package io.donkey.concurrent;
+package io.donkey.concurrent.Promise;
 
+import io.donkey.concurrent.future.AbstractFuture;
+import io.donkey.concurrent.future.Future;
+import io.donkey.concurrent.future.ProgressiveFuture;
+import io.donkey.listener.DefaultFutureListeners;
+import io.donkey.listener.GenericFutureListener;
+import io.donkey.listener.GenericProgressiveFutureListener;
 import io.donkey.util.Signal;
 import io.donkey.util.internal.EmptyArrays;
 import io.donkey.util.internal.StringUtil;
+import io.donkey.executor.EventExecutor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayDeque;
@@ -579,7 +586,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         execute(executor, new LateListenerNotifier(l));
     }
 
-    protected static void notifyListener(final EventExecutor eventExecutor, final Future<?> future, final GenericFutureListener<?> l) {
+    public static void notifyListener(final EventExecutor eventExecutor, final Future<?> future, final GenericFutureListener<?> l) {
         execute(eventExecutor, new Runnable() {
             @Override
             public void run() {
@@ -752,7 +759,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         @Override
         public void run() {
             final EventExecutor executor = executor();
-            if (listeners == null || executor == ImmediateEventExecutor.INSTANCE) {
+            if (listeners == null) {
                 for (; ; ) {
                     GenericFutureListener<?> l = poll();
                     if (l == null) {

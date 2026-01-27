@@ -1,13 +1,18 @@
-package io.donkey.concurrent;
+package io.donkey.listener;
+
+import io.donkey.concurrent.future.Future;
 
 import java.util.Arrays;
 
-final class DefaultFutureListeners {
+/**
+ * Listeners 组
+ */
+public final class DefaultFutureListeners {
     private GenericFutureListener<? extends Future<?>>[] listeners;
     private int size;
     private int progressiveSize; // the number of progressive listeners
 
-    DefaultFutureListeners(GenericFutureListener<? extends Future<?>> first, GenericFutureListener<? extends Future<?>> second) {
+    public DefaultFutureListeners(GenericFutureListener<? extends Future<?>> first, GenericFutureListener<? extends Future<?>> second) {
         listeners = new GenericFutureListener[2];
         listeners[0] = first;
         listeners[1] = second;

@@ -1,4 +1,8 @@
-package io.donkey.concurrent;
+package io.donkey.concurrent.future;
+
+import io.donkey.concurrent.Promise.DefaultPromise;
+import io.donkey.executor.EventExecutor;
+import io.donkey.listener.GenericFutureListener;
 
 import java.util.concurrent.TimeUnit;
 
@@ -28,7 +32,7 @@ public abstract class CompleteFuture<V> extends AbstractFuture<V> {
         if (listeners == null) {
             throw new NullPointerException("listeners");
         }
-        for (GenericFutureListener<? extends Future<? super V>> l: listeners) {
+        for (GenericFutureListener<? extends Future<? super V>> l : listeners) {
             if (l == null) {
                 break;
             }

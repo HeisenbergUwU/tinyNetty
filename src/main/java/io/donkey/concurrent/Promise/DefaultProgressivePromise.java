@@ -1,15 +1,11 @@
-package io.donkey.concurrent;
+package io.donkey.concurrent.Promise;
+
+import io.donkey.concurrent.future.Future;
+import io.donkey.executor.EventExecutor;
+import io.donkey.listener.GenericFutureListener;
 
 public class DefaultProgressivePromise<V> extends DefaultPromise<V> implements ProgressivePromise<V> {
 
-    /**
-     * Creates a new instance.
-     *
-     * It is preferable to use {@link EventExecutor#newProgressivePromise()} to create a new progressive promise
-     *
-     * @param executor
-     *        the {@link EventExecutor} which is used to notify the promise when it progresses or it is complete
-     */
     public DefaultProgressivePromise(EventExecutor executor) {
         super(executor);
     }

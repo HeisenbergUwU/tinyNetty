@@ -1,4 +1,8 @@
-package io.donkey.concurrent;
+package io.donkey.concurrent.Promise;
+
+import io.donkey.concurrent.future.Future;
+import io.donkey.concurrent.future.ProgressiveFuture;
+import io.donkey.listener.GenericFutureListener;
 
 public interface ProgressivePromise<V> extends Promise<V>, ProgressiveFuture<V> {
 

@@ -1,5 +1,8 @@
-package io.donkey.concurrent;
+package io.donkey.executor;
 
+import io.donkey.concurrent.future.Future;
+import io.donkey.concurrent.Promise.Promise;
+// EventExecutor 是 执行 task 的
 public interface EventExecutor extends EventExecutorGroup {
 
     @Override
@@ -12,8 +15,6 @@ public interface EventExecutor extends EventExecutorGroup {
     boolean inEventLoop(Thread thread);
 
     <V> Promise<V> newPromise();
-
-    <V> ProgressivePromise<V> newProgressivePromise();
 
     <V> Future<V> newSucceededFuture(V result);
 

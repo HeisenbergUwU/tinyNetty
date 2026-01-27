@@ -1,4 +1,4 @@
-package io.donkey.concurrent;
+package io.donkey.concurrent.future;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
