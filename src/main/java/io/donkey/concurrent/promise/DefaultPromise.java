@@ -30,7 +30,23 @@ public class DefaultPromise<V> implements Promise<V> {
 
     @Override
     public Promise<V> setSuccess(V result) {
-        return null;
+        if (isDone()) {
+            return this;
+        }
+
+        synchronized (this) {
+            // Allow only once.
+            if (isDone()) {
+                return this;
+            }
+            if (result == null) {
+                this.result = State.SUCCESS;
+            } else {
+                this.result = result;
+            }
+            notifyAll();
+        }
+        return this;
     }
 
     @Override
@@ -49,6 +65,9 @@ public class DefaultPromise<V> implements Promise<V> {
         synchronized (this) {
             if (isDone())
                 return null;
+            this.cause = cause;
+            this.result = cause;
+            return this;
         }
     }
 

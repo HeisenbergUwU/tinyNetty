@@ -1,6 +1,7 @@
 package io.donkey.concurrent.eventExecutor;
 
 import io.donkey.concurrent.future.Future;
+import io.donkey.concurrent.promise.Promise;
 
 public interface EventExecutor extends EventExecutorGroup {
 
